@@ -1,21 +1,27 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { getCategorySuggestions, type SuggestionState } from '@/app/report/actions';
+import { getCategorySuggestions, submitIssueReport, type SuggestionState } from '@/app/report/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, AlertTriangle, Lightbulb, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { Wand2, AlertTriangle, Lightbulb, Loader2, Upload, MapPin } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import Image from 'next/image';
 
-const initialState: SuggestionState = {
+const initialSuggestionState: SuggestionState = {
   success: false,
 };
 
-function SubmitButton() {
+const initialReportState = {
+  success: false,
+  message: '',
+};
+
+function SuggestionSubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending}>
@@ -32,9 +38,31 @@ function SubmitButton() {
   );
 }
 
+function ReportSubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" size="lg" disabled={pending}>
+        {pending ? (
+            <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+            </>
+        ) : (
+            'Submit Report'
+        )}
+        </Button>
+    );
+}
+
+
 export function ReportIssueForm() {
-  const [state, formAction] = useFormState(getCategorySuggestions, initialState);
+  const [suggestionState, suggestionAction] = useFormState(getCategorySuggestions, initialSuggestionState);
+  const [reportState, reportAction] = useFormState(submitIssueReport, initialReportState);
+  
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const handleCategoryToggle = (category: string) => {
@@ -44,27 +72,64 @@ export function ReportIssueForm() {
         : [...prev, category]
     );
   };
-  
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if(selectedCategories.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Category Selected",
-        description: "Please select at least one category before submitting.",
-      });
-      return;
-    }
 
-    toast({
-        title: "Issue Reported!",
-        description: "Thank you for your submission. Your report has been received.",
-    });
-  }
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setPhoto(loadEvent.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGetLocation = () => {
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setIsLocating(false);
+        toast({
+            title: "Location Acquired",
+            description: "Your current location has been successfully fetched.",
+        });
+      },
+      (error) => {
+        console.error("Error getting location", error);
+        setIsLocating(false);
+        toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: "Could not fetch your location. Please ensure you've granted permission.",
+        });
+      }
+    );
+  };
+  
+  useEffect(() => {
+    if (suggestionState.success && suggestionState.data) {
+        setSelectedCategories(suggestionState.data.categories);
+    }
+  }, [suggestionState.success, suggestionState.data]);
+
+  useEffect(() => {
+    if (reportState.message) {
+      toast({
+        title: reportState.success ? "Issue Reported!" : "Error",
+        description: reportState.message,
+        variant: reportState.success ? "default" : "destructive",
+      });
+    }
+  }, [reportState, toast]);
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="space-y-4">
+      <form action={suggestionAction} className="space-y-4">
+        <input type="hidden" name="photo" value={photo || ''} />
         <div>
           <Label htmlFor="description" className="text-base">Issue Description</Label>
           <Textarea
@@ -75,26 +140,47 @@ export function ReportIssueForm() {
             required
             className="mt-2"
           />
-          {state.fieldErrors?.description && (
-            <p className="text-sm font-medium text-destructive mt-1">{state.fieldErrors.description}</p>
+          {suggestionState.fieldErrors?.description && (
+            <p className="text-sm font-medium text-destructive mt-1">{suggestionState.fieldErrors.description}</p>
           )}
         </div>
-        <SubmitButton />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <Label htmlFor="photo-upload" className="text-base">Upload Photo</Label>
+                <input type="file" id="photo-upload" accept="image/*" onChange={handlePhotoUpload} ref={fileInputRef} className="hidden" />
+                <Button type="button" variant="outline" className="w-full mt-2" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    {photo ? "Change Photo" : "Select Photo"}
+                </Button>
+                {photo && <Image src={photo} alt="Preview" width={200} height={200} className="mt-2 rounded-md object-cover" />}
+            </div>
+            <div>
+                <Label htmlFor="location" className="text-base">Location</Label>
+                <Button type="button" variant="outline" className="w-full mt-2" onClick={handleGetLocation} disabled={isLocating}>
+                    {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                    {location ? "Update Location" : "Use My Location"}
+                </Button>
+                {location && <p className="text-sm text-muted-foreground mt-2">Lat: {location.lat.toFixed(5)}, Lng: {location.lng.toFixed(5)}</p>}
+            </div>
+        </div>
+
+        <SuggestionSubmitButton />
       </form>
 
-      {state.error && (
+      {suggestionState.error && (
         <Card className="border-destructive bg-destructive/10">
           <CardHeader className="flex flex-row items-center gap-3 space-y-0 p-4">
             <AlertTriangle className="h-6 w-6 text-destructive" />
             <div>
               <CardTitle className="text-destructive text-lg">Error</CardTitle>
-              <CardDescription className="text-destructive/80">{state.error}</CardDescription>
+              <CardDescription className="text-destructive/80">{suggestionState.error}</CardDescription>
             </div>
           </CardHeader>
         </Card>
       )}
 
-      {state.success && state.data && (
+      {suggestionState.success && suggestionState.data && (
         <Card>
           <CardHeader>
             <CardTitle>AI-Powered Suggestions</CardTitle>
@@ -106,7 +192,7 @@ export function ReportIssueForm() {
             <div>
               <h3 className="font-semibold mb-2">Suggested Categories</h3>
               <div className="flex flex-wrap gap-2">
-                {state.data.categories.map((category) => (
+                {suggestionState.data.categories.map((category) => (
                   <Badge
                     key={category}
                     data-state={selectedCategories.includes(category) ? 'selected' : 'unselected'}
@@ -124,7 +210,7 @@ export function ReportIssueForm() {
                 <div className='flex-1'>
                   <CardTitle className="text-base font-semibold">Reasoning</CardTitle>
                   <CardDescription className="text-muted-foreground mt-1">
-                    {state.data.reasoning}
+                    {suggestionState.data.reasoning}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -133,8 +219,18 @@ export function ReportIssueForm() {
         </Card>
       )}
 
-      <form onSubmit={handleSubmit} className="border-t pt-6 flex justify-end">
-        <Button type="submit" size="lg">Submit Report</Button>
+      <form action={reportAction} className="border-t pt-6 flex justify-end">
+        {/* Pass all data to the submission action */}
+        <input type="hidden" name="description" value={(document.getElementById('description') as HTMLTextAreaElement)?.value || ''} />
+        {selectedCategories.map(cat => <input key={cat} type="hidden" name="categories[]" value={cat} />)}
+        <input type="hidden" name="photo" value={photo || ''} />
+        {location && (
+            <>
+                <input type="hidden" name="lat" value={location.lat} />
+                <input type="hidden" name="lng" value={location.lng} />
+            </>
+        )}
+        <ReportSubmitButton />
       </form>
     </div>
   );

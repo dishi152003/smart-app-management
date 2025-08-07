@@ -6,8 +6,9 @@ import {
 } from '@/ai/flows/suggest-issue-categories';
 import { z } from 'zod';
 
-const schema = z.object({
+const suggestionSchema = z.object({
   description: z.string().min(10, 'Please provide a more detailed description.'),
+  photo: z.string().optional(),
 });
 
 export type SuggestionState = {
@@ -23,8 +24,9 @@ export async function getCategorySuggestions(
   prevState: SuggestionState,
   formData: FormData
 ): Promise<SuggestionState> {
-  const validatedFields = schema.safeParse({
+  const validatedFields = suggestionSchema.safeParse({
     description: formData.get('description'),
+    photo: formData.get('photo'),
   });
 
   if (!validatedFields.success) {
@@ -38,9 +40,48 @@ export async function getCategorySuggestions(
   try {
     const result = await suggestIssueCategories({
       description: validatedFields.data.description,
+      photoDataUri: validatedFields.data.photo,
     });
     return { success: true, data: result };
   } catch (e) {
     return { success: false, error: 'AI suggestion failed. Please try again.' };
   }
+}
+
+const reportSchema = z.object({
+    description: z.string(),
+    categories: z.array(z.string()).min(1, 'Please select at least one category.'),
+    location: z.object({
+        lat: z.number(),
+        lng: z.number(),
+    }).optional(),
+    photo: z.string().optional(),
+});
+
+export type ReportState = {
+    success: boolean;
+    message: string;
+}
+
+export async function submitIssueReport(
+    prevState: ReportState,
+    formData: FormData
+): Promise<ReportState> {
+
+    const categories = formData.getAll('categories[]');
+    const lat = formData.get('lat');
+    const lng = formData.get('lng');
+
+    const submission = {
+        description: formData.get('description'),
+        categories,
+        photo: formData.get('photo'),
+        location: lat && lng ? { lat: parseFloat(lat.toString()), lng: parseFloat(lng.toString()) } : undefined,
+    }
+
+    // This is where you would typically save the data to a database.
+    // For this demo, we'll just log it to the console.
+    console.log('New issue report submitted:', submission);
+
+    return { success: true, message: "Thank you for your submission. Your report has been received." };
 }
