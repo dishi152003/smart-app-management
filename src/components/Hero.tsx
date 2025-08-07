@@ -14,8 +14,8 @@ export function Hero() {
         </div>
         <Image
           src="https://placehold.co/1200x600.png"
-          alt="Smart City"
-          data-ai-hint="smart city"
+          alt="A modern metro train in a smart city"
+          data-ai-hint="smart city metro"
           width={1200}
           height={600}
           className="mx-auto aspect-video overflow-hidden rounded-xl object-cover"
