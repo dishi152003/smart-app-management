@@ -63,6 +63,7 @@ export function ReportIssueForm() {
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
   const handleCategoryToggle = (category: string) => {
@@ -135,6 +136,7 @@ export function ReportIssueForm() {
           <Textarea
             id="description"
             name="description"
+            ref={descriptionRef}
             placeholder="For example: 'The street lights on Main Street have been flickering for the past week.'"
             rows={5}
             required
@@ -153,7 +155,11 @@ export function ReportIssueForm() {
                     <Upload className="mr-2 h-4 w-4" />
                     {photo ? "Change Photo" : "Select Photo"}
                 </Button>
-                {photo && <Image src={photo} alt="Preview" width={200} height={200} className="mt-2 rounded-md object-cover" />}
+                {photo && (
+                    <div className="mt-2 relative aspect-video">
+                        <Image src={photo} alt="Preview" fill className="rounded-md object-cover" />
+                    </div>
+                )}
             </div>
             <div>
                 <Label htmlFor="location" className="text-base">Location</Label>
@@ -221,7 +227,7 @@ export function ReportIssueForm() {
 
       <form action={reportAction} className="border-t pt-6 flex justify-end">
         {/* Pass all data to the submission action */}
-        <input type="hidden" name="description" value={(document.getElementById('description') as HTMLTextAreaElement)?.value || ''} />
+        <input type="hidden" name="description" value={descriptionRef.current?.value || ''} />
         {selectedCategories.map(cat => <input key={cat} type="hidden" name="categories[]" value={cat} />)}
         <input type="hidden" name="photo" value={photo || ''} />
         {location && (
