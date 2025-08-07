@@ -7,9 +7,8 @@ import {
   Building,
   Dog,
   PlusCircle,
-  Map,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -46,15 +45,10 @@ export function Categories() {
             </Link>
           ))}
         </div>
-        <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
+        <div className="mt-12 text-center">
             <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link href="/report">
                     <PlusCircle className="mr-2 h-5 w-5" /> Report an Issue
-                </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-                <Link href="/map">
-                    <Map className="mr-2 h-5 w-5" /> View Issues Map
                 </Link>
             </Button>
         </div>
