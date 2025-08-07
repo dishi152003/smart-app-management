@@ -12,14 +12,16 @@ export function Hero() {
             Your voice in building a smarter, more responsive city. Report issues, track progress, and be part of the change.
           </p>
         </div>
-        <Image
-          src="https://placehold.co/1200x600.png"
-          alt="A modern metro train in a smart city"
-          data-ai-hint="smart city metro"
-          width={1200}
-          height={600}
-          className="mx-auto aspect-video overflow-hidden rounded-xl object-cover"
-        />
+        <div className="mx-auto aspect-video overflow-hidden rounded-xl">
+            <Image
+              src="https://placehold.co/1200x600.png"
+              alt="A modern metro train in a smart city"
+              data-ai-hint="smart city metro"
+              width={1200}
+              height={600}
+              className="object-cover"
+            />
+        </div>
       </div>
     </section>
   );
