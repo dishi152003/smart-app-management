@@ -14,9 +14,9 @@ export function Hero() {
         </div>
         <div className="relative mx-auto aspect-video overflow-hidden rounded-xl w-full">
             <Image
-              src="https://images.unsplash.com/photo-1502780436228-d18385e04a75?q=80&w=1200&auto=format&fit=crop"
-              alt="A modern metro train in a smart city"
-              data-ai-hint="smart city metro"
+              src="https://images.unsplash.com/photo-1610956667016-15debe929a3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMnx8c21hcnQlMjBjaXR5fGVufDB8fHx8MTc1NDU0MjUwOXww&ixlib=rb-4.1.0&q=80&w=1080"
+              alt="A vibrant, futuristic smart city skyline at dusk"
+              data-ai-hint="smart city"
               fill
               className="object-cover"
             />
