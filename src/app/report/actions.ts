@@ -4,6 +4,8 @@ import {
   suggestIssueCategories,
   type SuggestIssueCategoriesOutput,
 } from '@/ai/flows/suggest-issue-categories';
+import { db } from '@/lib/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { z } from 'zod';
 
 const suggestionSchema = z.object({
@@ -72,16 +74,22 @@ export async function submitIssueReport(
     const lat = formData.get('lat');
     const lng = formData.get('lng');
 
-    const submission = {
+    const submissionData = {
         description: formData.get('description'),
         categories,
         photo: formData.get('photo'),
         location: lat && lng ? { lat: parseFloat(lat.toString()), lng: parseFloat(lng.toString()) } : undefined,
     }
 
-    // This is where you would typically save the data to a database.
-    // For this demo, we'll just log it to the console.
-    console.log('New issue report submitted:', submission);
-
-    return { success: true, message: "Thank you for your submission. Your report has been received." };
+    try {
+        await addDoc(collection(db, "issues"), {
+            ...submissionData,
+            status: 'new',
+            submittedAt: serverTimestamp(),
+        });
+        return { success: true, message: "Thank you for your submission. Your report has been successfully saved." };
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        return { success: false, message: "There was an error saving your report. Please try again." };
+    }
 }
